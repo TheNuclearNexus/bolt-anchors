@@ -1,0 +1,12 @@
+data_pack:
+  load:
+    - data/test/function/main.mcfunction: ./main.mcfunction
+
+pipeline:
+  - mecha
+
+require:
+  - bolt
+  - bolt_anchors
+
+output: .build

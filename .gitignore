@@ -1,0 +1,9 @@
+.beet_cache/
+.build/
+.pytest_cache/
+.ruff_cache/
+.venv/
+.vscode/
+__pycache__/
+dist/
+*.egg-info/

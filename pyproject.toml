@@ -1,0 +1,37 @@
+[project]
+name = "bolt-anchors"
+version = "0.1.0"
+description = "Name resource locations and build nested paths in bolt"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "beet>=0.119.0",
+    "bolt>=0.51.0",
+    "mecha>=0.106.0",
+]
+
+[dependency-groups]
+dev = [
+    "lectern>=0.35.0",
+    "pytest>=9.0.2",
+    "pytest-insta>=0.4.1",
+    "python-semantic-release>=9.21.0",
+    "ruff>=0.14.13",
+]
+
+[tool.semantic_release]
+major_on_zero = false
+build_command = "uv build"
+
+version_variables = ["src/bolt_anchors/__init__.py:__version__"]
+version_toml = ["pyproject.toml:project.version"]
+commit_author = "github-actions <action@github.com>"
+
+[tool.semantic_release.publish]
+# This ensures it uses the build_command defined above
+dist_glob_patterns = ["dist/*"]
+upload_to_vcs_release = true
+
+[build-system]
+requires = ["uv_build>=0.9.26,<0.10.0"]
+build-backend = "uv_build"
