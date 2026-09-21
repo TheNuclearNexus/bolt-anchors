@@ -14,6 +14,8 @@ jobs:
   release:
     name: Test and release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       released: ${{ steps.release.outputs.released }}
       tag: ${{ steps.release.outputs.tag }}

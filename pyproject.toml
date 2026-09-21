@@ -21,6 +21,7 @@ dev = [
 
 [tool.semantic_release]
 major_on_zero = false
+allow_zero_version = true
 build_command = "uv build"
 
 version_variables = ["src/bolt_anchors/__init__.py:__version__"]
