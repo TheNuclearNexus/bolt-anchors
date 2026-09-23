@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.3.0 (2026-09-23)
+
+### Features
+
+- Make anchors real runtime values
+  ([`e1411c6`](https://github.com/TheNuclearNexus/bolt-anchors/commit/e1411c666720a6adc35148ffebccc80815df51ce))
+
+
 ## v0.2.0 (2026-09-23)
 
 ### Features
