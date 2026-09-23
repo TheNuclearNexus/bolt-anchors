@@ -37,13 +37,38 @@ append function ~/foo as foo:
         say foo bar
 ```
 
-`foo` resolves to `namespace:foo/foo` (relative to the current file and the
-enclosing declarations) and `foo / "bar"` extends it into a nested resource
-location. Anchors work for any resource type and any path depth.
+`foo` holds the fully resolved resource location of the declaration (relative to
+the current file and the enclosing declarations). It can be extended into a
+nested resource location, used as a value, and reused to declare or call other
+resources. Anchors work for any resource type and any path depth.
 
 ```mcfunction
 loot_table ./technical/loot as LOOT {}
 print(LOOT)
+```
+
+### Interpolated paths
+
+Any location value can be interpolated with `{...}` and extended with `/`
+segments. This also works for plain bolt variables that hold a location.
+
+```mcfunction
+FOO = ~/foo
+
+function FOO:          # demo:foo
+    say plain
+
+function {FOO}/bar:    # demo:foo/bar
+    say interpolated
+```
+
+Anchors support the same syntax, as well as the `foo / "bar"` shorthand.
+
+```mcfunction
+append function ~/anchor as a:
+    function {a}/"quoted"/child as c:
+        print(c)
+        say child
 ```
 
 Anchors can be used as values, interpolated into strings, and reused when

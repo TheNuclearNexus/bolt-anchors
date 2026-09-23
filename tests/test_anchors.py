@@ -114,6 +114,31 @@ def test_nested_anchor_commands(build):
         assert "test:main/rel/x" in ctx.data.functions
 
 
+def test_plain_interpolated_declaration(build):
+    # Regression: a bound location used directly as a declaration name is an
+    # interpolation and must not be treated as an anchor name.
+    source = "FOO = ~/foo\nfunction FOO:\n    say hi\n"
+    with build(source) as ctx:
+        assert ctx.data.functions["test:main/foo"].text == "say hi\n"
+
+
+def test_interpolated_path_extension(build):
+    source = "FOO = ~/foo\nfunction {FOO}/bar:\n    say bar\n"
+    with build(source) as ctx:
+        assert ctx.data.functions["test:main/foo/bar"].text == "say bar\n"
+
+
+def test_interpolated_path_extension_with_anchor(build):
+    source = (
+        "append function ~/anchor as a:\n"
+        "    function {a}/child as c:\n"
+        "        print(c)\n"
+        "        say child\n"
+    )
+    with build(source) as ctx:
+        assert ctx.data.functions["test:main/anchor/child"].text == "say child\n"
+
+
 def test_plain_bolt_still_works(build):
     source = (
         "def double(x):\n"

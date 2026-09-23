@@ -15,6 +15,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
 from typing import Any
 
+from bolt.ast import AstFormatString, AstInterpolation
 from bolt.parse import IDENTIFIER_PATTERN
 from bolt.pattern import STRING_PATTERN
 from mecha import (
@@ -27,6 +28,7 @@ from mecha import (
     CompilationDatabase,
     MutatingReducer,
     Parser,
+    delegate,
     get_stream_scope,
     rule,
 )
@@ -161,6 +163,25 @@ ANCHOR_SYNTAX = {
     "slash": r"/",
 }
 
+INTERPOLATION_SYNTAX = {
+    **ANCHOR_SYNTAX,
+    "curly": r"\{|\}",
+}
+
+
+def parse_segments(stream: TokenStream, quote_helper: JsonQuoteHelper) -> list[str]:
+    """Parse `/` separated path segments."""
+    segments: list[str] = []
+
+    while stream.get(("slash", "/")):
+        segment = stream.expect_any("string", "identifier", "number")
+        if segment.match("string"):
+            segments.append(quote_helper.unquote_string(segment))
+        else:
+            segments.append(segment.value)
+
+    return segments
+
 
 def parse_anchor_path(
     stream: TokenStream,
@@ -183,13 +204,8 @@ def parse_anchor_path(
         start = stream.expect()
         value = str(anchor.value)
 
-        while stream.get(("slash", "/")):
-            segment = stream.expect_any("string", "identifier", "number")
-            if segment.match("string"):
-                text = quote_helper.unquote_string(segment)
-            else:
-                text = segment.value
-            value = f"{value}/{text}"
+        for segment in parse_segments(stream, quote_helper):
+            value = f"{value}/{segment}"
 
         return value, start
 
@@ -208,10 +224,17 @@ class ResourceNameParser:
 
         node = self.parse_anchor(stream)
         if node is None:
+            node = self.parse_interpolation(stream)
+        if node is None:
             node = self.parser(stream)
 
         scope = get_stream_scope(stream)
         if not is_declaration_name(self.spec, scope):
+            return node
+
+        # Interpolated names are resolved by bolt during evaluation, so there is
+        # no static location to bind or extend here.
+        if not isinstance(node, AstResourceLocation):
             return node
 
         anchored = scope[0] == "anchor"
@@ -243,6 +266,34 @@ class ResourceNameParser:
         value, start = result
         node = AstResourceLocation.from_value(value)
         return set_location(node, start, stream.current)
+
+    def parse_interpolation(self, stream: TokenStream) -> AstResourceLocation | None:
+        """Parse an interpolated location such as `{FOO}/bar`."""
+        with stream.syntax(**INTERPOLATION_SYNTAX):
+            open_brace = stream.get(("curly", "{"))
+            if not open_brace:
+                return None
+
+            with stream.ignore("whitespace"):
+                value = delegate("bolt:expression", stream)
+
+            stream.expect(("curly", "}"))
+            segments = parse_segments(stream, self.quote_helper)
+
+        # Anchors are static, so keep the result a plain resource location.
+        if isinstance(value, AstAnchor):
+            location = str(value.value)
+            for segment in segments:
+                location = f"{location}/{segment}"
+            node = AstResourceLocation.from_value(location)
+            return set_location(node, open_brace, stream.current)
+
+        if segments:
+            fmt = "{}" + "".join(f"/{segment}" for segment in segments)
+            value = AstFormatString(fmt=fmt, values=AstChildren([value]))
+
+        node = AstInterpolation(converter="resource_location", value=value)
+        return set_location(node, open_brace, stream.current)
 
 
 @dataclass
