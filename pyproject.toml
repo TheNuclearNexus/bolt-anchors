@@ -1,6 +1,6 @@
 [project]
 name = "bolt-anchors"
-version = "0.1.0"
+version = "0.2.0"
 description = "Name resource locations and build nested paths in bolt"
 readme = "README.md"
 requires-python = ">=3.14"
