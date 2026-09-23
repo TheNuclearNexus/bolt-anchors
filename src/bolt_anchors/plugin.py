@@ -2,6 +2,8 @@ from beet import Context
 from bolt import Runtime
 from mecha import Mecha
 
+from .anchor import Anchor
+from .codegen import AnchorCodegen
 from .parse import (
     AnchorBlockParser,
     AnchorContext,
@@ -48,7 +50,7 @@ ANCHOR_COMMANDS = {
 
 
 def beet_default(ctx: Context):
-    ctx.inject(Runtime)
+    runtime = ctx.inject(Runtime)
     mc = ctx.inject(Mecha)
 
     context = AnchorContext(mc.database)
@@ -66,6 +68,11 @@ def beet_default(ctx: Context):
 
     if parser := spec.parsers.get("bolt:identifier"):
         spec.parsers["bolt:identifier"] = AnchorIdentifierParser(parser, context)
+
+    # Materialize anchors as runtime values and expose the `Anchor` helper to
+    # the generated code.
+    runtime.helpers["Anchor"] = Anchor
+    runtime.modules.codegen.extend(AnchorCodegen())
 
     # Inline anchor bodies at parse time so that the cached ast already reflects
     # the moved path scope and statements are evaluated like regular code.

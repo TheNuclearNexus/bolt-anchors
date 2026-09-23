@@ -139,6 +139,18 @@ def test_interpolated_path_extension_with_anchor(build):
         assert ctx.data.functions["test:main/anchor/child"].text == "say child\n"
 
 
+def test_anchor_runtime_value(build):
+    source = (
+        "append function ~/foo as foo:\n"
+        '    say f"{type(foo).__name__}"\n'
+        '    say f"path {foo}/bar"\n'
+    )
+    with build(source) as ctx:
+        assert ctx.data.functions["test:main/foo"].text == (
+            "say Anchor\nsay path test:main/foo/bar\n"
+        )
+
+
 def test_plain_bolt_still_works(build):
     source = (
         "def double(x):\n"

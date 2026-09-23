@@ -71,6 +71,17 @@ append function ~/anchor as a:
         say child
 ```
 
+`as` binds a runtime `Anchor` value: a `str` subclass that additionally
+supports `/` for joining path segments. It can be used anywhere a string can,
+including format strings and comparisons.
+
+```mcfunction
+append function ~/foo as foo:
+    say f"path {foo}/bar"   # path demo:foo/bar
+    print(foo / "baz")       # demo:foo/baz
+    print(foo == "demo:foo") # True
+```
+
 Anchors can be used as values, interpolated into strings, and reused when
 declaring or calling other resources.
 

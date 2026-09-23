@@ -183,6 +183,33 @@ def parse_segments(stream: TokenStream, quote_helper: JsonQuoteHelper) -> list[s
     return segments
 
 
+def _match_anchor(
+    stream: TokenStream,
+    context: AnchorContext,
+) -> tuple[AstAnchor, Token] | None:
+    token = stream.peek()
+
+    if token is None or not isinstance(token.value, str):
+        return None
+    if not IDENTIFIER_REGEX.fullmatch(token.value):
+        return None
+
+    anchor = context.lookup(token.value)
+    if anchor is None:
+        return None
+
+    return anchor, stream.expect()
+
+
+def match_anchor(
+    stream: TokenStream,
+    context: AnchorContext,
+) -> tuple[AstAnchor, Token] | None:
+    """Match an anchor identifier without consuming path segments."""
+    with stream.syntax(**ANCHOR_SYNTAX):
+        return _match_anchor(stream, context)
+
+
 def parse_anchor_path(
     stream: TokenStream,
     context: AnchorContext,
@@ -190,18 +217,11 @@ def parse_anchor_path(
 ) -> tuple[str, Token] | None:
     """Parse an anchor followed by any number of path segments."""
     with stream.syntax(**ANCHOR_SYNTAX):
-        token = stream.peek()
-
-        if token is None or not isinstance(token.value, str):
-            return None
-        if not IDENTIFIER_REGEX.fullmatch(token.value):
+        result = _match_anchor(stream, context)
+        if result is None:
             return None
 
-        anchor = context.lookup(token.value)
-        if anchor is None:
-            return None
-
-        start = stream.expect()
+        anchor, start = result
         value = str(anchor.value)
 
         for segment in parse_segments(stream, quote_helper):
@@ -302,16 +322,15 @@ class AnchorIdentifierParser:
 
     parser: Parser
     context: AnchorContext
-    quote_helper: JsonQuoteHelper = field(default_factory=JsonQuoteHelper)
 
     def __call__(self, stream: TokenStream) -> AstNode:
         self.context.reset_if_needed()
 
-        result = parse_anchor_path(stream, self.context, self.quote_helper)
+        result = match_anchor(stream, self.context)
         if result is not None:
-            value, start = result
-            node = AstAnchor(value=value)
-            return set_location(node, start, stream.current)
+            anchor, start = result
+            node = AstAnchor(value=str(anchor.value))
+            return set_location(node, start)
 
         return self.parser(stream)
 
